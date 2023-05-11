@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>TodoList App</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <style>
+        .done {
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" style="display: flex; align-items: center; justify-content: end; margin-top: 10px;">
+        <span id="add-email" style="cursor: pointer; color: #08C053;">&#43; Add Email</span>
+    </div>
+    
+    <div class="container">
+        <h3>Oh, so many things to do...</h3>
+        <table class='table'>
+            {% for entry in todolist %}
+            <tr style="height: 80px; padding: 20px; box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <td {% if entry.status=='done' %} class='done' {% endif %}>{{ entry.what_to_do|safe }}</td>
+                    <td>{{ entry.due_date|safe }}</td>
+                </div>
+                <td>
+                    <button style="background: #08C053;color: #ffffff;border: none;padding: 10px; border-radius: 10px; font-weight: bold;" onclick="location.href='/mark/{{entry.what_to_do|urlencode}}'">Mark As Done </button>
+                    <button style="background: #E11B1B;color: #ffffff;border: none;padding: 10px; border-radius: 10px;font-weight: bold;" onclick="location.href='/delete/{{entry.what_to_do|urlencode}}'">Delete</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td>
+                    <em>Unbelievable. Nothing to do for now.</em>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <button onclick="toggle_entry_form();" style="background: #000;color: #ffffff;border: none;padding: 10px; border-radius: 10px; font-weight: bold;" id='toggle_button'>Add a New Entry</button>
+    </div>
+
+    <div class="container" style="margin-top: 20px;">
+        <form action="/add" method="POST" id="add-form" style="display:none">
+            <div class="row">
+                <div class="col-sm-6">
+                    What to do:
+                    <input type="text" size="50" name="what_to_do" value="more homework?" style="height: 40px;
+                    border-radius: 10px;
+                    padding: 10px;
+                    border: 1px solid rgba(0, 0,0, 0.1);" />
+                </div>
+                <div class="col-sm-3">
+                    When:
+                    <input type="date" name="due_date" value="" style="height: 40px;
+                    border-radius: 10px;
+                    padding: 10px;
+                    border: 1px solid rgba(0, 0,0, 0.1);" />
+                </div>
+                <div class="col-sm-3">
+                    Language:
+                    <select name="language"  style="height: 40px;
+                    border-radius: 10px;
+                    padding: 10px;
+                    border: 1px solid rgba(0, 0,0, 0.1);">
+                        {% for full_name, language in language_dict.items() %}
+                          <option value="{{ language }}">{{ full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-sm-3" style="margin-top: 20px;">
+                    <input type="submit" value="Save the New Entry" style="background: #1B99E1;color: #ffffff;border: none;padding: 10px; border-radius: 10px; font-weight: bold;" />
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        var show_entry_form = false;
+
+        function toggle_entry_form() {
+            const today = new Date().toISOString().substr(0, 10);
+            document.getElementsByName("due_date")[0].defaultValue = today;
+            if (show_entry_form) {
+                $('#add-form').hide();
+                $('#toggle_button').text("Add a New Entry");
+            } else {
+                $('#add-form').show();
+                $('#toggle_button').text("Cancel the New Entry");
+            }
+            show_entry_form = !show_entry_form;
+        };
+
+        function setSessionData(data) {
+            // Make an AJAX request to set the session data
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/set_email', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                console.log(xhr.responseText); // Success message
+                }
+            };
+            xhr.send(JSON.stringify({email: data}));
+        }
+        function isValidEmail(email) {
+            // Regular expression to validate email format
+            var emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            return emailRegex.test(email);
+        }
+
+        const email = window.localStorage.getItem('email');
+        if (email) {
+            setSessionData(email);
+            document.getElementById('add-email').innerHTML = email;
+        }
+
+        document.getElementById('add-email').addEventListener('click', function() {
+            var email = prompt('Enter email:');
+            if (email && isValidEmail(email)) {
+                setSessionData(email);
+                document.getElementById('add-email').innerHTML = email;
+                window.localStorage.setItem('email', email);
+            } else {
+                alert('Invalid email or email not provided by user');
+            }
+        });
+    </script>
+</body>
+
+</html>
